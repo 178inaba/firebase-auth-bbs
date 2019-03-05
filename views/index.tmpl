@@ -102,11 +102,16 @@ limitations under the License.
       firebase.auth().createUserWithEmailAndPassword(email, password).then(function(user) {
         console.log(user);
         firebase.auth().currentUser.getIdToken(false).then(function(idToken) {
+          var name = document.getElementById('name').value;
           $.ajax({
             url:'/signup',
             type:'post',
-            data: idToken
-          })
+            dataType: 'json',
+            data: JSON.stringify({
+              token: idToken,
+              name: name
+            })
+          });
         }).catch(function(error) {
           alert(error.message);
           console.log(error);
@@ -242,6 +247,8 @@ limitations under the License.
         <div class="mdl-card__supporting-text mdl-color-text--grey-600">
           <p>Enter an email and password below and either sign in to an existing account or sign up</p>
 
+          <input class="mdl-textfield__input" style="display:inline;width:auto;" type="text" id="name" name="name" placeholder="Name"/>
+          &nbsp;&nbsp;&nbsp;
           <input class="mdl-textfield__input" style="display:inline;width:auto;" type="text" id="email" name="email" placeholder="Email"/>
           &nbsp;&nbsp;&nbsp;
           <input class="mdl-textfield__input" style="display:inline;width:auto;" type="password" id="password" name="password" placeholder="Password"/>

@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -76,12 +75,14 @@ func authentication(c *gin.Context) {
 	if uid == nil {
 		log.Print("uid is nil")
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	name := sess.Get("name")
 	if name == nil {
 		log.Print("name is nil")
 		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	c.Set("uid", uid)
@@ -90,10 +91,12 @@ func authentication(c *gin.Context) {
 
 func getComments(c *gin.Context) {
 	fmt.Println(c.GetString("uid"))
+	fmt.Println(c.GetString("name"))
 }
 
 func postComment(c *gin.Context) {
 	fmt.Println(c.GetString("uid"))
+	fmt.Println(c.GetString("name"))
 }
 
 type bbs struct {
@@ -101,42 +104,54 @@ type bbs struct {
 }
 
 func (b *bbs) signup(c *gin.Context) {
-	bs, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		c.Abort()
+	var params map[string]string
+	if err := c.BindJSON(&params); err != nil {
 		log.Print(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 
-	token, err := b.authClient.VerifyIDToken(c, string(bs))
+	token, err := b.authClient.VerifyIDToken(c, params["token"])
 	if err != nil {
-		c.Abort()
 		log.Print(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
+
+	name := params["name"]
+	uid := token.UID
+
+	users[uid] = name
 
 	sess := sessions.Default(c)
-	sess.Set("uid", token.UID)
-	//sess.Set("name", token.UID)
+	sess.Set("uid", uid)
+	sess.Set("name", name)
 	sess.Save()
 
 	c.JSON(http.StatusCreated, nil)
 }
 
 func (b *bbs) signin(c *gin.Context) {
-	bs, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
+	var params map[string]string
+	if err := c.BindJSON(&params); err != nil {
 		log.Print(err)
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
 
-	token, err := b.authClient.VerifyIDToken(c, string(bs))
+	token, err := b.authClient.VerifyIDToken(c, params["token"])
 	if err != nil {
 		log.Print(err)
 		c.AbortWithStatus(http.StatusBadRequest)
+		return
 	}
+
+	name := params["name"]
+	uid := token.UID
 
 	sess := sessions.Default(c)
-	sess.Set("uid", token.UID)
-	//sess.Set("name", name)
+	sess.Set("uid", uid)
+	sess.Set("name", name)
 	sess.Save()
 
 	c.JSON(http.StatusCreated, nil)
